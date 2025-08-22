@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import type { YugiohCard, GameMode } from '../types/game';
+import { getDailyCard } from './dailyCardService';
 
 export const searchCards = async (query: string, mode: GameMode): Promise<YugiohCard[]> => {
   if (!query || query.length < 2) return [];
@@ -44,6 +45,17 @@ export const getRandomCard = async (mode: GameMode): Promise<YugiohCard | null> 
     return data;
   } catch (error) {
     console.error('Error getting random card:', error);
+    return null;
+  }
+};
+
+// Nouvelle fonction pour récupérer la carte du jour
+export const getTodaysCard = async (mode: GameMode): Promise<YugiohCard | null> => {
+  try {
+    const dailyCardResult = await getDailyCard(mode);
+    return dailyCardResult ? dailyCardResult.card : null;
+  } catch (error) {
+    console.error('Error getting today\'s card:', error);
     return null;
   }
 };

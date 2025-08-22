@@ -39,3 +39,39 @@ export interface GameState {
   gameWon: boolean;
   isLoading: boolean;
 }
+
+export interface DailyCard {
+  id: string;
+  game_mode: GameMode;
+  card_id: number;
+  date: string;
+  day_number: number;
+  success_count: number;
+  total_attempts: number;
+  created_at: string;
+}
+
+export interface UserCardProgress {
+  id: string;
+  user_id: string;
+  game_mode: GameMode;
+  card_id: number;
+  date: string;
+  day_number: number;
+  attempts: number;
+  is_completed: boolean;
+  is_success: boolean;
+  completed_at?: string;
+  created_at: string;
+}
+
+export interface CardHistory {
+  id: string;
+  game_mode: GameMode;
+  card_id: number;
+  used_date: string;
+  day_number: number;
+  success_count: number;
+  total_attempts: number;
+  created_at: string;
+}

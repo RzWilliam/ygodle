@@ -4,9 +4,18 @@ import SearchBar from '../components/SearchBar';
 import GameGrid from '../components/GameGrid';
 import ResultCard from '../components/ResultCard';
 import ShareButton from '../components/ShareButton';
-import { getRandomCard } from '../services/cardService';
+import { DailyCardStats } from '../components/DailyCardStats';
+import { getDailyCard, updateDailyCardStats } from '../services/dailyCardService';
+import { 
+  hasPlayedToday as checkHasPlayedToday, 
+  markGameStarted, 
+  markGameCompleted, 
+  recordAttempt,
+  getTodayUserStats,
+  cleanupOldSessionData
+} from '../services/userSessionService';
 import { compareCards } from '../utils/gameLogic';
-import type { YugiohCard, GameAttempt, GameMode } from '../types/game';
+import type { YugiohCard, GameAttempt, GameMode, DailyCard } from '../types/game';
 
 interface GamePageProps {
   mode: GameMode;
@@ -14,10 +23,12 @@ interface GamePageProps {
 
 const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   const [targetCard, setTargetCard] = useState<YugiohCard | null>(null);
+  const [dailyStats, setDailyStats] = useState<DailyCard | null>(null);
   const [attempts, setAttempts] = useState<GameAttempt[]>([]);
   const [gameOver, setGameOver] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasPlayedToday, setHasPlayedToday] = useState(false);
   
   const maxAttempts = 6;
 
@@ -28,19 +39,44 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       setGameOver(false);
       setGameWon(false);
       
-      const card = await getRandomCard(mode);
-      if (card) {
-        setTargetCard(card);
-        console.log('Mystery card:', card.name_en); // For debug
+      // Nettoyer les anciennes données de session
+      cleanupOldSessionData();
+      
+      // Vérifier si l'utilisateur a déjà joué aujourd'hui
+      const alreadyPlayed = checkHasPlayedToday(mode);
+      const userStats = getTodayUserStats(mode);
+      
+      try {
+        const dailyResult = await getDailyCard(mode);
+        if (dailyResult) {
+          setTargetCard(dailyResult.card);
+          setDailyStats(dailyResult.stats);
+          
+          if (alreadyPlayed && userStats) {
+            // L'utilisateur a déjà joué aujourd'hui
+            setHasPlayedToday(true);
+            setGameOver(true);
+            setGameWon(userStats.won);
+            console.log(`Already played today. Won: ${userStats.won}, Attempts: ${userStats.attempts}`);
+          } else {
+            // Marquer le début du jeu
+            markGameStarted(mode);
+          }
+          
+          console.log('Daily card:', dailyResult.card.name_en, 'Day:', dailyResult.stats.day_number);
+        }
+      } catch (error) {
+        console.error('Error loading daily card:', error);
       }
+      
       setIsLoading(false);
     };
     
     initGame();
   }, [mode]);
 
-  const handleCardGuess = (guessedCard: YugiohCard) => {
-    if (!targetCard || gameOver) return;
+  const handleCardGuess = async (guessedCard: YugiohCard) => {
+    if (!targetCard || gameOver || !dailyStats) return;
 
     const results = compareCards(guessedCard, targetCard);
     const newAttempt: GameAttempt = {
@@ -51,27 +87,49 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     const newAttempts = [...attempts, newAttempt];
     setAttempts(newAttempts);
 
-    // Check if player won
-    if (results.name === 'correct') {
+    // Enregistrer la tentative localement
+    recordAttempt(mode);
+
+    // Vérifier si le joueur a gagné
+    const isSuccess = results.name === 'correct';
+    
+    try {
+      // Mettre à jour les statistiques globales
+      await updateDailyCardStats(mode, targetCard.id, isSuccess);
+      
+      // Mettre à jour les stats locales pour l'affichage
+      setDailyStats(prev => prev ? {
+        ...prev,
+        total_attempts: prev.total_attempts + 1,
+        success_count: isSuccess ? prev.success_count + 1 : prev.success_count
+      } : null);
+    } catch (error) {
+      console.error('Error updating stats:', error);
+    }
+
+    // Vérifier si le jeu est terminé
+    if (isSuccess) {
       setGameWon(true);
       setGameOver(true);
+      setHasPlayedToday(true);
+      // Marquer le jeu comme terminé avec succès
+      markGameCompleted(mode, true, newAttempts.length);
     } else if (newAttempts.length >= maxAttempts) {
       setGameOver(true);
+      setHasPlayedToday(true);
+      // Marquer le jeu comme terminé sans succès
+      markGameCompleted(mode, false, newAttempts.length);
     }
   };
 
-  const resetGame = async () => {
-    setIsLoading(true);
-    setAttempts([]);
-    setGameOver(false);
-    setGameWon(false);
-    
-    const card = await getRandomCard(mode);
-    if (card) {
-      setTargetCard(card);
-      console.log('New mystery card:', card.name_en);
+  const resetGame = () => {
+    // Pour le mode quotidien, on ne peut pas vraiment "reset" la carte
+    // Mais on peut réinitialiser l'état local pour permettre de rejouer (dev mode)
+    if (hasPlayedToday) {
+      // Reset local pour le développement
+      localStorage.removeItem('ygodle_user_session');
+      window.location.reload();
     }
-    setIsLoading(false);
   };
 
   if (isLoading) {
@@ -79,11 +137,20 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <p className="text-white font-semibold">Loading mystery card...</p>
+          <p className="text-white font-semibold">Loading daily card...</p>
         </div>
       </div>
     );
   }
+
+  const getModeDisplayName = (mode: GameMode): string => {
+    switch (mode) {
+      case 'monsters': return 'Monstres';
+      case 'spells': return 'Magie';
+      case 'traps': return 'Piège';
+      default: return mode;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -98,56 +165,96 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
         </Link>
         <div className="mt-2">
           <span className="px-3 py-1 bg-gray-700 rounded-full text-sm capitalize">
-            {mode} Mode • {attempts.length}/{maxAttempts}
+            {getModeDisplayName(mode)} Mode • {attempts.length}/{maxAttempts}
+            {dailyStats && (
+              <span className="ml-2 text-yellow-400">
+                • Jour #{dailyStats.day_number}
+              </span>
+            )}
           </span>
+          {hasPlayedToday && (
+            <div className="mt-2">
+              <span className="px-2 py-1 bg-yellow-600 rounded text-xs">
+                ✨ Carte quotidienne terminée !
+              </span>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main Game Area */}
       <main className="flex flex-col items-center justify-start px-4 py-8">
-        <div className="w-full max-w-2xl mx-auto">
-          <SearchBar 
-            onCardSelect={handleCardGuess} 
-            disabled={gameOver}
-            gameMode={mode}
-          />
-          
-          <GameGrid 
-            attempts={attempts} 
-            maxAttempts={maxAttempts}
-            gameMode={mode}
-            targetCard={targetCard}
-            gameOver={gameOver}
-          />
-          
-          <ResultCard 
-            card={targetCard}
-            gameWon={gameWon}
-            gameOver={gameOver}
-            attemptCount={attempts.length}
-          />
-          
-          {gameOver && (
-            <div className="flex justify-center items-center mt-6 space-x-4 flex-wrap gap-2">
-              <ShareButton 
-                gameWon={gameWon}
-                attemptCount={attempts.length}
+        <div className="w-full max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Game Section */}
+            <div className="lg:col-span-2">
+              <SearchBar 
+                onCardSelect={handleCardGuess} 
+                disabled={gameOver}
                 gameMode={mode}
               />
-              <button 
-                onClick={resetGame}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
-              >
-                New Game
-              </button>
-              <Link 
-                to="/"
-                className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition"
-              >
-                Change Mode
-              </Link>
+              
+              <GameGrid 
+                attempts={attempts} 
+                maxAttempts={maxAttempts}
+                gameMode={mode}
+                targetCard={targetCard}
+                gameOver={gameOver}
+              />
+              
+              <ResultCard 
+                card={targetCard}
+                gameWon={gameWon}
+                gameOver={gameOver}
+                attemptCount={attempts.length}
+              />
+              
+              {gameOver && (
+                <div className="flex justify-center items-center mt-6 space-x-4 flex-wrap gap-2">
+                  <ShareButton 
+                    gameWon={gameWon}
+                    attemptCount={attempts.length}
+                    gameMode={mode}
+                  />
+                  {/* Bouton de développement pour reset */}
+                  <button 
+                    onClick={resetGame}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg transition"
+                    title="Reset local session (dev only)"
+                  >
+                    🔄 Reset Local
+                  </button>
+                  <Link 
+                    to="/"
+                    className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition"
+                  >
+                    Change Mode
+                  </Link>
+                </div>
+              )}
+              
+              {hasPlayedToday && (
+                <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg text-center">
+                  <p className="text-yellow-300 font-medium">
+                    🎯 Vous avez terminé la carte quotidienne !
+                  </p>
+                  <p className="text-gray-300 text-sm mt-1">
+                    Revenez demain pour une nouvelle carte. Les statistiques globales continuent de s'accumuler pour tous les joueurs.
+                  </p>
+                  {dailyStats && (
+                    <div className="mt-2 text-xs text-gray-400">
+                      Total global aujourd'hui : {dailyStats.success_count}/{dailyStats.total_attempts} réussites
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+            
+            {/* Stats Section */}
+            <div className="lg:col-span-1">
+              <DailyCardStats mode={mode} className="sticky top-4" />
+            </div>
+          </div>
         </div>
       </main>
     </div>
