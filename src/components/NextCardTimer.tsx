@@ -55,13 +55,10 @@ export const NextCardTimer: React.FC = () => {
   }, []);
 
   return (
-    <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-      <div className="text-xs text-gray-600 mb-1">⏰ Prochaine carte dans</div>
-      <div className="text-lg font-mono font-bold text-blue-600">
+    <div className="text-center p-3 rounded-lg border border-blue-200">
+      <div className="text-xs text-white mb-1">Next cards in :</div>
+      <div className="text-lg font-mono font-bold text-blue-400">
         {timeUntilNext}
-      </div>
-      <div className="text-xs text-gray-500 mt-1">
-        Les cartes changent à midi (heure française)
       </div>
     </div>
   );

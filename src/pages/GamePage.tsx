@@ -209,7 +209,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       {/* Main Game Area */}
       <main className="flex flex-col items-center justify-start px-4 py-8">
         <div className="w-full max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Game Section */}
             <div className="lg:col-span-2">
               <SearchBar 
@@ -275,9 +275,9 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
             </div>
             
             {/* Stats Section */}
-            <div className="lg:col-span-1">
+            {/* <div className="lg:col-span-1">
               <DailyCardStats mode={mode} className="sticky top-4" />
-            </div>
+            </div> */}
           </div>
         </div>
       </main>

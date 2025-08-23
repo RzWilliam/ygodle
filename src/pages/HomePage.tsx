@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import {NextCardTimer} from "../components/NextCardTimer";
 
 const HomePage: React.FC = () => {
   const modes = [
@@ -67,6 +68,7 @@ const HomePage: React.FC = () => {
             </div>
           </Link>
         ))}
+        <NextCardTimer />
       </div>
 
       {/* Footer */}
