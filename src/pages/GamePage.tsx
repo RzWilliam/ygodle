@@ -32,6 +32,15 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   
   const maxAttempts = 6;
 
+  const getModeDisplayName = (mode: GameMode): string => {
+    switch (mode) {
+      case 'monsters': return 'Monstres';
+      case 'spells': return 'Magie';
+      case 'traps': return 'Piège';
+      default: return mode;
+    }
+  };
+
   useEffect(() => {
     const initGame = async () => {
       setIsLoading(true);
@@ -42,28 +51,30 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       // Nettoyer les anciennes données de session
       cleanupOldSessionData();
       
-      // Vérifier si l'utilisateur a déjà joué aujourd'hui
-      const alreadyPlayed = checkHasPlayedToday(mode);
-      const userStats = getTodayUserStats(mode);
-      
       try {
         const dailyResult = await getDailyCard(mode);
         if (dailyResult) {
           setTargetCard(dailyResult.card);
           setDailyStats(dailyResult.stats);
           
+          // Vérifier si l'utilisateur a déjà joué aujourd'hui pour cette carte
+          const alreadyPlayed = checkHasPlayedToday(mode, dailyResult.card.id);
+          const userStats = getTodayUserStats(mode, dailyResult.card.id);
+          
           if (alreadyPlayed && userStats) {
-            // L'utilisateur a déjà joué aujourd'hui
+            // L'utilisateur a déjà joué aujourd'hui pour cette carte
             setHasPlayedToday(true);
             setGameOver(true);
             setGameWon(userStats.won);
             console.log(`Already played today. Won: ${userStats.won}, Attempts: ${userStats.attempts}`);
           } else {
-            // Marquer le début du jeu
-            markGameStarted(mode);
+            // Marquer le début du jeu avec l'ID de la carte
+            markGameStarted(mode, dailyResult.card.id);
           }
           
           console.log('Daily card:', dailyResult.card.name_en, 'Day:', dailyResult.stats.day_number);
+        } else {
+          console.log(`No daily card available for ${mode} mode`);
         }
       } catch (error) {
         console.error('Error loading daily card:', error);
@@ -88,7 +99,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     setAttempts(newAttempts);
 
     // Enregistrer la tentative localement
-    recordAttempt(mode);
+    recordAttempt(mode, targetCard.id);
 
     // Vérifier si le joueur a gagné
     const isSuccess = results.name === 'correct';
@@ -113,12 +124,12 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       setGameOver(true);
       setHasPlayedToday(true);
       // Marquer le jeu comme terminé avec succès
-      markGameCompleted(mode, true, newAttempts.length);
+      markGameCompleted(mode, targetCard.id, true, newAttempts.length);
     } else if (newAttempts.length >= maxAttempts) {
       setGameOver(true);
       setHasPlayedToday(true);
       // Marquer le jeu comme terminé sans succès
-      markGameCompleted(mode, false, newAttempts.length);
+      markGameCompleted(mode, targetCard.id, false, newAttempts.length);
     }
   };
 
@@ -143,14 +154,27 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     );
   }
 
-  const getModeDisplayName = (mode: GameMode): string => {
-    switch (mode) {
-      case 'monsters': return 'Monstres';
-      case 'spells': return 'Magie';
-      case 'traps': return 'Piège';
-      default: return mode;
-    }
-  };
+  // Si aucune carte quotidienne n'est disponible
+  if (!targetCard) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="text-6xl mb-4">🚫</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Aucune carte quotidienne</h2>
+          <p className="text-gray-300 mb-6">
+            Aucune carte quotidienne n'est disponible pour le mode {getModeDisplayName(mode)} aujourd'hui.
+            Les cartes changent à midi heure française.
+          </p>
+          <Link 
+            to="/"
+            className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+          >
+            Retour à l'accueil
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">

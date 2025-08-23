@@ -49,12 +49,12 @@ export const getCurrentDateString = (date: Date = new Date()): string => {
   return effectiveDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
 };
 
-// Récupérer la carte du jour pour un mode donné
+// Récupérer la carte du jour pour un mode donné (sans création automatique)
 export const getDailyCard = async (mode: GameMode): Promise<{ card: YugiohCard; stats: DailyCard } | null> => {
   try {
     const today = getCurrentDateString();
     
-    // Chercher si une carte du jour existe déjà
+    // Chercher la carte du jour existante
     const { data: existingDaily, error: dailyError } = await supabase
       .from('daily_cards')
       .select('*')
@@ -62,17 +62,13 @@ export const getDailyCard = async (mode: GameMode): Promise<{ card: YugiohCard; 
       .eq('date', today)
       .single();
 
-    if (dailyError && dailyError.code !== 'PGRST116') {
+    if (dailyError) {
+      if (dailyError.code === 'PGRST116') {
+        // Aucune carte trouvée pour aujourd'hui
+        console.log(`No daily card found for ${mode} on ${today}`);
+        return null;
+      }
       throw dailyError;
-    }
-
-    let dailyCardData: DailyCard;
-
-    if (existingDaily) {
-      dailyCardData = existingDaily;
-    } else {
-      // Créer une nouvelle carte du jour
-      dailyCardData = await createDailyCard(mode);
     }
 
     // Récupérer les détails de la carte
@@ -80,113 +76,18 @@ export const getDailyCard = async (mode: GameMode): Promise<{ card: YugiohCard; 
     const { data: cardData, error: cardError } = await supabase
       .from(table)
       .select('*')
-      .eq('id', dailyCardData.card_id)
+      .eq('id', existingDaily.card_id)
       .single();
 
     if (cardError) throw cardError;
 
     return {
       card: cardData,
-      stats: dailyCardData
+      stats: existingDaily
     };
   } catch (error) {
     console.error('Error getting daily card:', error);
     return null;
-  }
-};
-
-// Créer une nouvelle carte du jour
-export const createDailyCard = async (mode: GameMode): Promise<DailyCard> => {
-  const today = getCurrentDateString();
-  const dayNumber = getDayNumber();
-
-  try {
-    // Obtenir les cartes déjà utilisées pour ce mode
-    const { data: usedCards, error: historyError } = await supabase
-      .from('card_history')
-      .select('card_id')
-      .eq('game_mode', mode);
-
-    if (historyError) throw historyError;
-
-    const usedCardIds = usedCards?.map(item => item.card_id) || [];
-
-    // Sélectionner une carte aléatoire qui n'a pas été utilisée
-    const table = mode === 'monsters' ? 'monsters' : mode === 'spells' ? 'spells' : 'traps';
-    
-    let selectedCard: YugiohCard;
-    
-    if (usedCardIds.length > 0) {
-      // Exclure les cartes déjà utilisées
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .not('id', 'in', `(${usedCardIds.join(',')})`)
-        .limit(1000); // Limiter pour éviter de charger toutes les cartes
-
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        // Si toutes les cartes ont été utilisées, recommencer depuis le début
-        const { data: allCards, error: allError } = await supabase
-          .from(table)
-          .select('*')
-          .limit(1000);
-        
-        if (allError) throw allError;
-        selectedCard = allCards[Math.floor(Math.random() * allCards.length)];
-        
-        // Optionnel : vider l'historique pour recommencer
-        await supabase
-          .from('card_history')
-          .delete()
-          .eq('game_mode', mode);
-      } else {
-        selectedCard = data[Math.floor(Math.random() * data.length)];
-      }
-    } else {
-      // Première carte, sélection aléatoire normale
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .limit(1000);
-
-      if (error) throw error;
-      selectedCard = data[Math.floor(Math.random() * data.length)];
-    }
-
-    // Créer l'entrée dans daily_cards
-    const { data: dailyCard, error: dailyError } = await supabase
-      .from('daily_cards')
-      .insert({
-        game_mode: mode,
-        card_id: selectedCard.id,
-        date: today,
-        day_number: dayNumber,
-        success_count: 0,
-        total_attempts: 0
-      })
-      .select()
-      .single();
-
-    if (dailyError) throw dailyError;
-
-    // Ajouter à l'historique
-    await supabase
-      .from('card_history')
-      .insert({
-        game_mode: mode,
-        card_id: selectedCard.id,
-        used_date: today,
-        day_number: dayNumber,
-        success_count: 0,
-        total_attempts: 0
-      });
-
-    return dailyCard;
-  } catch (error) {
-    console.error('Error creating daily card:', error);
-    throw error;
   }
 };
 
@@ -294,18 +195,5 @@ export const getGameModeStats = async (mode: GameMode): Promise<{
       totalCards: 0,
       averageSuccessRate: 0
     };
-  }
-};
-
-// Fonction pour initialiser les cartes quotidiennes (à appeler une fois par jour)
-export const initializeDailyCards = async (): Promise<void> => {
-  const modes: GameMode[] = ['monsters', 'spells', 'traps'];
-  
-  for (const mode of modes) {
-    try {
-      await getDailyCard(mode); // Cela créera automatiquement la carte si elle n'existe pas
-    } catch (error) {
-      console.error(`Error initializing daily card for ${mode}:`, error);
-    }
   }
 };

@@ -7,6 +7,7 @@ interface UserSession {
   playedToday: {
     [mode: string]: {
       date: string;
+      cardId: number; // Ajouter l'ID de la carte pour détecter les changements
       completed: boolean;
       won: boolean;
       attempts: number;
@@ -68,22 +69,25 @@ const saveSession = (session: UserSession): void => {
   localStorage.setItem(USER_SESSION_KEY, JSON.stringify(session));
 };
 
-// Vérifier si l'utilisateur a déjà joué aujourd'hui pour ce mode
-export const hasPlayedToday = (mode: string): boolean => {
+// Vérifier si l'utilisateur a déjà joué aujourd'hui pour ce mode et cette carte
+export const hasPlayedToday = (mode: string, cardId: number): boolean => {
   const session = getUserSession();
   const today = getEffectiveDateString();
   
   const playedData = session.playedToday[mode];
-  return playedData && playedData.date === today && playedData.completed;
+  return playedData && 
+         playedData.date === today && 
+         playedData.cardId === cardId && 
+         playedData.completed;
 };
 
 // Obtenir les stats de jeu d'aujourd'hui pour l'utilisateur local
-export const getTodayUserStats = (mode: string) => {
+export const getTodayUserStats = (mode: string, cardId: number) => {
   const session = getUserSession();
   const today = getEffectiveDateString();
   
   const playedData = session.playedToday[mode];
-  if (playedData && playedData.date === today) {
+  if (playedData && playedData.date === today && playedData.cardId === cardId) {
     return playedData;
   }
   
@@ -91,13 +95,18 @@ export const getTodayUserStats = (mode: string) => {
 };
 
 // Marquer qu'un utilisateur a commencé à jouer aujourd'hui
-export const markGameStarted = (mode: string): void => {
+export const markGameStarted = (mode: string, cardId: number): void => {
   const session = getUserSession();
   const today = getEffectiveDateString();
   
-  if (!session.playedToday[mode] || session.playedToday[mode].date !== today) {
+  // Vérifier si c'est une nouvelle carte (même jour mais carte différente)
+  const existingData = session.playedToday[mode];
+  if (!existingData || 
+      existingData.date !== today || 
+      existingData.cardId !== cardId) {
     session.playedToday[mode] = {
       date: today,
+      cardId: cardId,
       completed: false,
       won: false,
       attempts: 0
@@ -107,12 +116,13 @@ export const markGameStarted = (mode: string): void => {
 };
 
 // Marquer qu'un utilisateur a terminé le jeu d'aujourd'hui
-export const markGameCompleted = (mode: string, won: boolean, attempts: number): void => {
+export const markGameCompleted = (mode: string, cardId: number, won: boolean, attempts: number): void => {
   const session = getUserSession();
   const today = getEffectiveDateString();
   
   session.playedToday[mode] = {
     date: today,
+    cardId: cardId,
     completed: true,
     won,
     attempts
@@ -122,11 +132,13 @@ export const markGameCompleted = (mode: string, won: boolean, attempts: number):
 };
 
 // Enregistrer une tentative
-export const recordAttempt = (mode: string): void => {
+export const recordAttempt = (mode: string, cardId: number): void => {
   const session = getUserSession();
   const today = getEffectiveDateString();
   
-  if (session.playedToday[mode] && session.playedToday[mode].date === today) {
+  if (session.playedToday[mode] && 
+      session.playedToday[mode].date === today && 
+      session.playedToday[mode].cardId === cardId) {
     session.playedToday[mode].attempts++;
     saveSession(session);
   }
