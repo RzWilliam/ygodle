@@ -19,7 +19,7 @@ const GameGrid: React.FC<GameGridProps> = ({
   gameOver 
 }) => {
   if (gameMode === 'monsters') {
-    return <MonsterGameGrid attempts={attempts} maxAttempts={maxAttempts} />;
+    return <MonsterGameGrid attempts={attempts} />;
   }
 
   return (
