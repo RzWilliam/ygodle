@@ -1,6 +1,5 @@
 // Service pour gérer les sessions utilisateur locales (localStorage)
 // Cela évite qu'une même personne joue plusieurs fois par jour sur le même appareil
-// Les "jours" changent à midi heure française
 
 interface UserSession {
   id: string;
@@ -16,26 +15,6 @@ interface UserSession {
 }
 
 const USER_SESSION_KEY = 'ygodle_user_session';
-
-// Calculer la date effective (change à midi heure française)
-const getEffectiveDateString = (): string => {
-  const now = new Date();
-  const frenchTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Paris"}));
-  const changeTime = new Date(frenchTime);
-  changeTime.setHours(12, 0, 0, 0); // Midi
-  
-  let effectiveDate: Date;
-  if (frenchTime.getTime() < changeTime.getTime()) {
-    // Avant midi = jour précédent
-    effectiveDate = new Date(frenchTime);
-    effectiveDate.setDate(effectiveDate.getDate() - 1);
-  } else {
-    // Après midi = jour actuel
-    effectiveDate = new Date(frenchTime);
-  }
-  
-  return effectiveDate.toISOString().split('T')[0];
-};
 
 // Générer un ID unique pour cet appareil/navigateur
 const generateUserId = (): string => {
@@ -70,24 +49,22 @@ const saveSession = (session: UserSession): void => {
 };
 
 // Vérifier si l'utilisateur a déjà joué aujourd'hui pour ce mode et cette carte
-export const hasPlayedToday = (mode: string, cardId: number): boolean => {
+export const hasPlayedToday = (mode: string, cardId: number, cardDate: string): boolean => {
   const session = getUserSession();
-  const today = getEffectiveDateString();
   
   const playedData = session.playedToday[mode];
   return playedData && 
-         playedData.date === today && 
+         playedData.date === cardDate && 
          playedData.cardId === cardId && 
          playedData.completed;
 };
 
 // Obtenir les stats de jeu d'aujourd'hui pour l'utilisateur local
-export const getTodayUserStats = (mode: string, cardId: number) => {
+export const getTodayUserStats = (mode: string, cardId: number, cardDate: string) => {
   const session = getUserSession();
-  const today = getEffectiveDateString();
   
   const playedData = session.playedToday[mode];
-  if (playedData && playedData.date === today && playedData.cardId === cardId) {
+  if (playedData && playedData.date === cardDate && playedData.cardId === cardId) {
     return playedData;
   }
   
@@ -95,17 +72,16 @@ export const getTodayUserStats = (mode: string, cardId: number) => {
 };
 
 // Marquer qu'un utilisateur a commencé à jouer aujourd'hui
-export const markGameStarted = (mode: string, cardId: number): void => {
+export const markGameStarted = (mode: string, cardId: number, cardDate: string): void => {
   const session = getUserSession();
-  const today = getEffectiveDateString();
   
   // Vérifier si c'est une nouvelle carte (même jour mais carte différente)
   const existingData = session.playedToday[mode];
   if (!existingData || 
-      existingData.date !== today || 
+      existingData.date !== cardDate || 
       existingData.cardId !== cardId) {
     session.playedToday[mode] = {
-      date: today,
+      date: cardDate,
       cardId: cardId,
       completed: false,
       won: false,
@@ -116,12 +92,11 @@ export const markGameStarted = (mode: string, cardId: number): void => {
 };
 
 // Marquer qu'un utilisateur a terminé le jeu d'aujourd'hui
-export const markGameCompleted = (mode: string, cardId: number, won: boolean, attempts: number): void => {
+export const markGameCompleted = (mode: string, cardId: number, cardDate: string, won: boolean, attempts: number): void => {
   const session = getUserSession();
-  const today = getEffectiveDateString();
   
   session.playedToday[mode] = {
-    date: today,
+    date: cardDate,
     cardId: cardId,
     completed: true,
     won,
@@ -132,12 +107,11 @@ export const markGameCompleted = (mode: string, cardId: number, won: boolean, at
 };
 
 // Enregistrer une tentative
-export const recordAttempt = (mode: string, cardId: number): void => {
+export const recordAttempt = (mode: string, cardId: number, cardDate: string): void => {
   const session = getUserSession();
-  const today = getEffectiveDateString();
   
   if (session.playedToday[mode] && 
-      session.playedToday[mode].date === today && 
+      session.playedToday[mode].date === cardDate && 
       session.playedToday[mode].cardId === cardId) {
     session.playedToday[mode].attempts++;
     saveSession(session);

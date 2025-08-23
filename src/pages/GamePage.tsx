@@ -58,8 +58,8 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
           setDailyStats(dailyResult.stats);
           
           // Vérifier si l'utilisateur a déjà joué aujourd'hui pour cette carte
-          const alreadyPlayed = checkHasPlayedToday(mode, dailyResult.card.id);
-          const userStats = getTodayUserStats(mode, dailyResult.card.id);
+          const alreadyPlayed = checkHasPlayedToday(mode, dailyResult.card.id, dailyResult.stats.date);
+          const userStats = getTodayUserStats(mode, dailyResult.card.id, dailyResult.stats.date);
           
           if (alreadyPlayed && userStats) {
             // L'utilisateur a déjà joué aujourd'hui pour cette carte
@@ -69,7 +69,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
             console.log(`Already played today. Won: ${userStats.won}, Attempts: ${userStats.attempts}`);
           } else {
             // Marquer le début du jeu avec l'ID de la carte
-            markGameStarted(mode, dailyResult.card.id);
+            markGameStarted(mode, dailyResult.card.id, dailyResult.stats.date);
           }
           
           console.log('Daily card:', dailyResult.card.name_en, 'Day:', dailyResult.stats.day_number);
@@ -99,7 +99,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     setAttempts(newAttempts);
 
     // Enregistrer la tentative localement
-    recordAttempt(mode, targetCard.id);
+    recordAttempt(mode, targetCard.id, dailyStats.date);
 
     // Vérifier si le joueur a gagné
     const isSuccess = results.name === 'correct';
@@ -124,12 +124,12 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       setGameOver(true);
       setHasPlayedToday(true);
       // Marquer le jeu comme terminé avec succès
-      markGameCompleted(mode, targetCard.id, true, newAttempts.length);
+      markGameCompleted(mode, targetCard.id, dailyStats.date, true, newAttempts.length);
     } else if (newAttempts.length >= maxAttempts) {
       setGameOver(true);
       setHasPlayedToday(true);
       // Marquer le jeu comme terminé sans succès
-      markGameCompleted(mode, targetCard.id, false, newAttempts.length);
+      markGameCompleted(mode, targetCard.id, dailyStats.date, false, newAttempts.length);
     }
   };
 
