@@ -86,8 +86,8 @@ const MonsterGameGrid: React.FC<MonsterGameGridProps> = ({
               layout
             >
             <motion.div
-              className={`rounded-lg text-center text-sm font-medium ${getColorClass(
-                attempt.results.type
+              className={`rounded-lg text-center text-sm font-medium p-2 ${getColorClass(
+                attempt.results.name
               )}`}
               initial={isLatest ? { opacity: 0, scale: 0.8 } : false}
               animate={{ opacity: 1, scale: 1 }}
