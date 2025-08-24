@@ -93,9 +93,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCardSelect, disabled = false, g
                 <div className="font-medium text-white truncate">{card.name_en}</div>
                 <div className="text-sm text-gray-400">
                   {card.humanreadablecardtype} • {card.race}
-                  {card.atk !== undefined && ` • ATK: ${card.atk}`}
-                  {card.def !== undefined && ` • DEF: ${card.def}`}
-                  {card.level !== undefined && ` • LV: ${card.level}`}
+                    {` • ATK: ${card.atk ?? 0}`}
+                    {` • DEF: ${card.def ?? 0}`}
+                    {` • LV: ${card.level ?? 0}`}
                 </div>
               </div>
             </button>

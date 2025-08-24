@@ -33,9 +33,9 @@ const ResultCard: React.FC<ResultCardProps> = ({ card, gameWon, gameOver, attemp
       <div className="text-sm space-y-1 text-gray-600">
         <p><span className="font-semibold">Type:</span> {card.humanreadablecardtype}</p>
         <p><span className="font-semibold">Race:</span> {card.race}</p>
-        {card.atk !== undefined && <p><span className="font-semibold">ATK:</span> {card.atk}</p>}
-        {card.def !== undefined && <p><span className="font-semibold">DEF:</span> {card.def}</p>}
-        {card.level !== undefined && <p><span className="font-semibold">Level:</span> {card.level}</p>}
+        {(card.atk !== null && card.atk !== undefined) && <p><span className="font-semibold">ATK:</span> {card.atk}</p>}
+        {(card.def !== null && card.def !== undefined) && <p><span className="font-semibold">DEF:</span> {card.def}</p>}
+        {(card.level !== null && card.level !== undefined) && <p><span className="font-semibold">Level:</span> {card.level}</p>}
         {card.attribute && <p><span className="font-semibold">Attribute:</span> {card.attribute}</p>}
       </div>
 

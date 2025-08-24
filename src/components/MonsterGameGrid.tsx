@@ -132,7 +132,7 @@ const MonsterGameGrid: React.FC<MonsterGameGridProps> = ({
             transition={{ delay: isLatest ? 0.25 : 0, duration: 0.3 }}
           >
             <span>
-              {attempt.card.atk !== undefined ? attempt.card.atk : "-"}
+              {attempt.card.atk !== null && attempt.card.atk !== undefined ? attempt.card.atk : 0}
             </span>
             <span className="text-lg font-bold">
               {getArrow(attempt.results.atk)}
@@ -147,7 +147,7 @@ const MonsterGameGrid: React.FC<MonsterGameGridProps> = ({
             transition={{ delay: isLatest ? 0.3 : 0, duration: 0.3 }}
           >
             <span>
-              {attempt.card.def !== undefined ? attempt.card.def : "-"}
+              {attempt.card.def !== null && attempt.card.def !== undefined ? attempt.card.def : 0}
             </span>
             <span className="text-lg font-bold">
               {getArrow(attempt.results.def)}
@@ -162,9 +162,7 @@ const MonsterGameGrid: React.FC<MonsterGameGridProps> = ({
             transition={{ delay: isLatest ? 0.35 : 0, duration: 0.3 }}
           >
             <span>
-              {attempt.card.level !== undefined
-                ? attempt.card.level
-                : "-"}
+              {attempt.card.level !== null && attempt.card.level !== undefined ? attempt.card.level : 0}
             </span>
             <span className="text-lg font-bold">
               {getArrow(attempt.results.level)}
