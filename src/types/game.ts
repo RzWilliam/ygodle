@@ -44,7 +44,8 @@ export interface DailyCard {
   id: string;
   game_mode: GameMode;
   card_id: number;
-  date: string;
+  date: string; // Peut être mappé depuis used_date
+  used_date?: string; // Champ optionnel pour la compatibilité
   day_number: number;
   success_count: number;
   total_attempts: number;

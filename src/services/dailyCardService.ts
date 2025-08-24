@@ -54,10 +54,10 @@ export const getDailyCard = async (mode: GameMode): Promise<{ card: YugiohCard; 
   try {
     // Chercher la carte la plus récente pour ce mode (au lieu d'une date précise)
     const { data: latestDaily, error: dailyError } = await supabase
-      .from('daily_cards')
+      .from('card_history')
       .select('*')
       .eq('game_mode', mode)
-      .order('date', { ascending: false })
+      .order('used_date', { ascending: false })
       .limit(1)
       .single();
 
@@ -80,11 +80,14 @@ export const getDailyCard = async (mode: GameMode): Promise<{ card: YugiohCard; 
 
     if (cardError) throw cardError;
 
-    console.log(`Found daily card for ${mode}: ${cardData.name_en} (date: ${latestDaily.date})`);
+    console.log(`Found daily card for ${mode}: ${cardData.name_en} (date: ${latestDaily.used_date})`);
 
     return {
       card: cardData,
-      stats: latestDaily
+      stats: {
+        ...latestDaily,
+        date: latestDaily.used_date // Mapper used_date vers date pour la compatibilité
+      }
     };
   } catch (error) {
     console.error('Error getting daily card:', error);
@@ -101,19 +104,19 @@ export const updateDailyCardStats = async (
   try {
     // Récupérer la carte la plus récente pour ce mode et cette carte
     const { data: currentDaily, error: getCurrentError } = await supabase
-      .from('daily_cards')
-      .select('success_count, total_attempts, date')
+      .from('card_history')
+      .select('success_count, total_attempts, used_date')
       .eq('game_mode', mode)
       .eq('card_id', cardId)
-      .order('date', { ascending: false })
+      .order('used_date', { ascending: false })
       .limit(1)
       .single();
 
     if (getCurrentError) throw getCurrentError;
 
-    // Mettre à jour daily_cards (stats globales)
-    const { error: dailyError } = await supabase
-      .from('daily_cards')
+    // Mettre à jour card_history (stats globales)
+    const { error: historyError } = await supabase
+      .from('card_history')
       .update({
         total_attempts: currentDaily.total_attempts + 1,
         success_count: isSuccess 
@@ -122,33 +125,7 @@ export const updateDailyCardStats = async (
       })
       .eq('game_mode', mode)
       .eq('card_id', cardId)
-      .eq('date', currentDaily.date);
-
-    if (dailyError) throw dailyError;
-
-    // Récupérer les stats actuelles pour card_history
-    const { data: currentHistory, error: getHistoryError } = await supabase
-      .from('card_history')
-      .select('success_count, total_attempts')
-      .eq('game_mode', mode)
-      .eq('card_id', cardId)
-      .eq('used_date', currentDaily.date)
-      .single();
-
-    if (getHistoryError) throw getHistoryError;
-
-    // Mettre à jour card_history (stats globales)
-    const { error: historyError } = await supabase
-      .from('card_history')
-      .update({
-        total_attempts: currentHistory.total_attempts + 1,
-        success_count: isSuccess 
-          ? currentHistory.success_count + 1 
-          : currentHistory.success_count
-      })
-      .eq('game_mode', mode)
-      .eq('card_id', cardId)
-      .eq('used_date', currentDaily.date);
+      .eq('used_date', currentDaily.used_date);
 
     if (historyError) throw historyError;
   } catch (error) {
