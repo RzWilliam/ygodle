@@ -17,3 +17,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+html::before{
+      z-index: -1;
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: url(/src/assets/ygodle_bg.webp) no-repeat 50% fixed;
+    background-size: cover;
+    background-color: #000;
+    filter: contrast(1.2) brightness(.6);
+}

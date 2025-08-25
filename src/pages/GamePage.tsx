@@ -145,7 +145,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
           <p className="text-white font-semibold">Loading daily card...</p>
@@ -157,7 +157,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   // Si aucune carte quotidienne n'est disponible
   if (!targetCard) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-6xl mb-4">🚫</div>
           <h2 className="text-2xl font-bold text-white mb-4">Aucune carte quotidienne</h2>
@@ -177,9 +177,9 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen text-white">
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 py-4 text-center">
+      <header className="py-4 text-center">
         <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
           <h1 className="text-3xl font-bold tracking-wider">
             <span className="text-yellow-400">YG</span>
