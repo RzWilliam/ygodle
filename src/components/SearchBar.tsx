@@ -50,7 +50,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCardSelect, disabled = false, g
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto mt-6 relative">
+    <div className="w-full mx-auto mt-6 relative">
       <input
         ref={inputRef}
         type="text"

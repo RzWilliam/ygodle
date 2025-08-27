@@ -146,7 +146,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
           <p className="text-white font-semibold">Loading daily card...</p>
@@ -158,7 +158,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   // Si aucune carte quotidienne n'est disponible
   if (!targetCard) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-6xl mb-4">🚫</div>
           <h2 className="text-2xl font-bold text-white mb-4">Aucune carte quotidienne</h2>
@@ -178,16 +178,9 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   }
 
   return (
-    <div className="min-h-screen text-white">
-      {/* Header */}
-      <header className="py-4 text-center">
-        <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
-          <h1 className="text-3xl font-bold tracking-wider">
-            <span className="text-yellow-400">YG</span>
-            <span className="text-blue-400">O</span>
-            <span className="text-red-400">dle</span>
-          </h1>
-        </Link>
+    <div className='text-white flex flex-col items-center justify-center px-4'>
+      {/* Game Info */}
+      <div className="text-center pb-4">
         <div className="mt-2">
           <span className="px-3 py-1 bg-gray-700 rounded-full text-sm capitalize">
             {getModeDisplayName(mode)} Mode • {attempts.length}{mode === 'monsters' ? '' : `/${maxAttempts}`}
@@ -205,10 +198,10 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
             </div>
           )}
         </div>
-      </header>
+      </div>
 
       {/* Main Game Area */}
-      <main className="flex flex-col items-center justify-start px-4 py-8">
+      <main className="flex flex-col items-center justify-start px-4 py-8 max-w-4xl w-full">
         <div className="w-full max-w-4xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Game Section */}

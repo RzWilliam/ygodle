@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import {NextCardTimer} from "../components/NextCardTimer";
+import { NextCardTimer } from "../components/NextCardTimer";
 
 const HomePage: React.FC = () => {
   const modes = [
@@ -31,17 +31,7 @@ const HomePage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen text-white flex flex-col items-center justify-center px-4">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <h1 className="text-6xl font-bold mb-4 tracking-wider">
-          <span className="text-yellow-400">YG</span>
-          <span className="text-blue-400">O</span>
-          <span className="text-red-400">dle</span>
-        </h1>
-        <p className="text-xl text-gray-300 mb-2">A DAILY YU-GI-OH! WORDLE</p>
-      </div>
-
+    <div className="text-white flex flex-col items-center justify-center px-4">
       {/* Choose a gamemode */}
       <p className="text-xl text-white mb-6">Choose a gamemode</p>
 
