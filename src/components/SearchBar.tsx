@@ -6,9 +6,10 @@ interface SearchBarProps {
   onCardSelect: (card: YugiohCard) => void;
   disabled?: boolean;
   gameMode: GameMode;
+  excludeCardIds?: number[];
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onCardSelect, disabled = false, gameMode }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ onCardSelect, disabled = false, gameMode, excludeCardIds = [] }) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<YugiohCard[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -24,7 +25,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCardSelect, disabled = false, g
       }
 
       setIsLoading(true);
-      const results = await searchCards(query, gameMode);
+      const results = await searchCards(query, gameMode, excludeCardIds);
       setSuggestions(results);
       setShowSuggestions(true);
       setIsLoading(false);
@@ -32,7 +33,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCardSelect, disabled = false, g
 
     const timeoutId = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(timeoutId);
-  }, [query, gameMode]);
+  }, [query, gameMode, excludeCardIds]);
 
   const handleCardSelect = (card: YugiohCard) => {
     onCardSelect(card);

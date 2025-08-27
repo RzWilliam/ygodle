@@ -34,9 +34,9 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
 
   const getModeDisplayName = (mode: GameMode): string => {
     switch (mode) {
-      case 'monsters': return 'Monstres';
-      case 'spells': return 'Magie';
-      case 'traps': return 'Piège';
+      case 'monsters': return 'Monsters';
+      case 'spells': return 'Spells';
+      case 'traps': return 'Traps';
       default: return mode;
     }
   };
@@ -210,6 +210,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
                 onCardSelect={handleCardGuess} 
                 disabled={gameOver}
                 gameMode={mode}
+                excludeCardIds={attempts.map(attempt => attempt.card.id)}
               />
               
               <GameGrid 

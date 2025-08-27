@@ -2,17 +2,23 @@ import { supabase } from '../supabaseClient';
 import type { YugiohCard, GameMode } from '../types/game';
 import { getDailyCard } from './dailyCardService';
 
-export const searchCards = async (query: string, mode: GameMode): Promise<YugiohCard[]> => {
+export const searchCards = async (query: string, mode: GameMode, excludeCardIds: number[] = []): Promise<YugiohCard[]> => {
   if (!query || query.length < 2) return [];
 
   try {
     const table = mode === 'monsters' ? 'monsters' : mode === 'spells' ? 'spells' : 'traps';
     
-    const { data, error } = await supabase
+    let queryBuilder = supabase
       .from(table)
       .select('*')
-      .or(`name_en.ilike.%${query}%,name_fr.ilike.%${query}%`)
-      .limit(10);
+      .or(`name_en.ilike.%${query}%,name_fr.ilike.%${query}%`);
+    
+    // Exclude already guessed cards
+    if (excludeCardIds.length > 0) {
+      queryBuilder = queryBuilder.not('id', 'in', `(${excludeCardIds.join(',')})`);
+    }
+    
+    const { data, error } = await queryBuilder.limit(10);
 
     if (error) throw error;
     return data || [];
