@@ -13,6 +13,11 @@ import {
   getTodayUserStats,
   cleanupOldSessionData
 } from '../services/userSessionService';
+import {
+  getGameStateForCard,
+  saveGameState,
+  cleanupOldGuessHistory
+} from '../services/guessHistoryService';
 import { compareCards } from '../utils/gameLogic';
 import type { YugiohCard, GameAttempt, GameMode, DailyCard } from '../types/game';
 
@@ -48,8 +53,9 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       setGameOver(false);
       setGameWon(false);
       
-      // Nettoyer les anciennes données de session
+      // Nettoyer les anciennes données de session et l'historique
       cleanupOldSessionData();
+      cleanupOldGuessHistory();
       
       try {
         const dailyResult = await getDailyCard(mode);
@@ -57,22 +63,36 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
           setTargetCard(dailyResult.card);
           setDailyStats(dailyResult.stats);
           
-          // Vérifier si l'utilisateur a déjà joué aujourd'hui pour cette carte
-          const alreadyPlayed = checkHasPlayedToday(mode, dailyResult.card.id, dailyResult.stats.date);
-          const userStats = getTodayUserStats(mode, dailyResult.card.id, dailyResult.stats.date);
+          // Vérifier s'il y a un historique de tentatives pour cette carte
+          const existingGameState = getGameStateForCard(mode, dailyResult.card.id, dailyResult.stats.date);
           
-          if (alreadyPlayed && userStats) {
-            // L'utilisateur a déjà joué aujourd'hui pour cette carte
-            setHasPlayedToday(true);
-            setGameOver(true);
-            setGameWon(userStats.won);
-            console.log(`Already played today. Won: ${userStats.won}, Attempts: ${userStats.attempts}`);
+          if (existingGameState) {
+            // Restaurer l'état du jeu depuis localStorage
+            setAttempts(existingGameState.attempts);
+            setGameOver(existingGameState.gameOver);
+            setGameWon(existingGameState.gameWon);
+            
+            if (existingGameState.gameOver) {
+              setHasPlayedToday(true);
+            }
+            
+            console.log(`Restored game state: ${existingGameState.attempts.length} attempts, gameOver: ${existingGameState.gameOver}, gameWon: ${existingGameState.gameWon}`);
           } else {
-            // Marquer le début du jeu avec l'ID de la carte
-            markGameStarted(mode, dailyResult.card.id, dailyResult.stats.date);
+            // Vérifier si l'utilisateur a déjà joué aujourd'hui pour cette carte (système legacy)
+            const alreadyPlayed = checkHasPlayedToday(mode, dailyResult.card.id, dailyResult.stats.date);
+            const userStats = getTodayUserStats(mode, dailyResult.card.id, dailyResult.stats.date);
+            
+            if (alreadyPlayed && userStats) {
+              // L'utilisateur a déjà joué aujourd'hui pour cette carte (système legacy)
+              setHasPlayedToday(true);
+              setGameOver(true);
+              setGameWon(userStats.won);
+              console.log(`Already played today (legacy). Won: ${userStats.won}, Attempts: ${userStats.attempts}`);
+            } else {
+              // Marquer le début du jeu avec l'ID de la carte
+              markGameStarted(mode, dailyResult.card.id, dailyResult.stats.date);
+            }
           }
-          
-          console.log('Daily card:', dailyResult.card.name_en, 'Day:', dailyResult.stats.day_number);
         } else {
           console.log(`No daily card available for ${mode} mode`);
         }
@@ -98,11 +118,34 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     const newAttempts = [...attempts, newAttempt];
     setAttempts(newAttempts);
 
-    // Enregistrer la tentative localement
+    // Enregistrer la tentative localement (système legacy)
     recordAttempt(mode, targetCard.id, dailyStats.date);
 
     // Vérifier si le joueur a gagné
     const isSuccess = results.name === 'correct';
+    
+    // Déterminer si le jeu est terminé
+    let isGameOver = false;
+    let isGameWon = false;
+    
+    if (isSuccess) {
+      isGameOver = true;
+      isGameWon = true;
+    } else if (mode !== 'monsters' && newAttempts.length >= maxAttempts) {
+      // Only end game for spells/traps when reaching max attempts
+      isGameOver = true;
+      isGameWon = false;
+    }
+    
+    // Sauvegarder l'état du jeu dans localStorage
+    saveGameState(
+      mode,
+      targetCard.id,
+      dailyStats.date,
+      newAttempts,
+      isGameOver,
+      isGameWon
+    );
     
     try {
       // Mettre à jour les statistiques globales
@@ -118,19 +161,13 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       console.error('Error updating stats:', error);
     }
 
-    // Vérifier si le jeu est terminé
-    if (isSuccess) {
-      setGameWon(true);
+    // Mettre à jour l'état local
+    if (isGameOver) {
       setGameOver(true);
+      setGameWon(isGameWon);
       setHasPlayedToday(true);
-      // Marquer le jeu comme terminé avec succès
-      markGameCompleted(mode, targetCard.id, dailyStats.date, true, newAttempts.length);
-    } else if (mode !== 'monsters' && newAttempts.length >= maxAttempts) {
-      // Only end game for spells/traps when reaching max attempts
-      setGameOver(true);
-      setHasPlayedToday(true);
-      // Marquer le jeu comme terminé sans succès
-      markGameCompleted(mode, targetCard.id, dailyStats.date, false, newAttempts.length);
+      // Marquer le jeu comme terminé dans le système legacy
+      markGameCompleted(mode, targetCard.id, dailyStats.date, isGameWon, newAttempts.length);
     }
   };
 
@@ -140,6 +177,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     if (hasPlayedToday) {
       // Reset local pour le développement
       localStorage.removeItem('ygodle_user_session');
+      localStorage.removeItem('ygodle_guess_history');
       window.location.reload();
     }
   };
@@ -268,11 +306,6 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
                 </div>
               )}
             </div>
-            
-            {/* Stats Section */}
-            {/* <div className="lg:col-span-1">
-              <DailyCardStats mode={mode} className="sticky top-4" />
-            </div> */}
           </div>
         </div>
       </main>
