@@ -4,7 +4,6 @@ import SearchBar from '../components/SearchBar';
 import GameGrid from '../components/GameGrid';
 import ResultCard from '../components/ResultCard';
 import ShareButton from '../components/ShareButton';
-import { DailyCardStats } from '../components/DailyCardStats';
 import { getDailyCard, updateDailyCardStats } from '../services/dailyCardService';
 import { 
   hasPlayedToday as checkHasPlayedToday, 
@@ -30,7 +29,8 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   
-  const maxAttempts = 6;
+  // Infinite guesses for monsters, limited for spells/traps
+  const maxAttempts = mode === 'monsters' ? Infinity : 6;
 
   const getModeDisplayName = (mode: GameMode): string => {
     switch (mode) {
@@ -125,7 +125,8 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       setHasPlayedToday(true);
       // Marquer le jeu comme terminé avec succès
       markGameCompleted(mode, targetCard.id, dailyStats.date, true, newAttempts.length);
-    } else if (newAttempts.length >= maxAttempts) {
+    } else if (mode !== 'monsters' && newAttempts.length >= maxAttempts) {
+      // Only end game for spells/traps when reaching max attempts
       setGameOver(true);
       setHasPlayedToday(true);
       // Marquer le jeu comme terminé sans succès
@@ -189,7 +190,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
         </Link>
         <div className="mt-2">
           <span className="px-3 py-1 bg-gray-700 rounded-full text-sm capitalize">
-            {getModeDisplayName(mode)} Mode • {attempts.length}/{maxAttempts}
+            {getModeDisplayName(mode)} Mode • {attempts.length}{mode === 'monsters' ? '' : `/${maxAttempts}`}
             {dailyStats && (
               <span className="ml-2 text-yellow-400">
                 • Jour #{dailyStats.day_number}
@@ -220,7 +221,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
               
               <GameGrid 
                 attempts={attempts} 
-                maxAttempts={maxAttempts}
+                maxAttempts={mode === 'monsters' ? 0 : maxAttempts} // Pass 0 for monsters since it's not used
                 gameMode={mode}
                 targetCard={targetCard}
                 gameOver={gameOver}

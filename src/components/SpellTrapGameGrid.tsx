@@ -23,9 +23,8 @@ const SpellTrapGameGrid: React.FC<SpellTrapGameGridProps> = ({
 
   const getBlurLevel = (attemptIndex: number) => {
     // Start with heavy blur and progressively reduce it
-    // 0 attempts = 20px blur, 6 attempts = 0px blur
     const maxBlur = 20;
-    const blurReduction = maxBlur / 6; // Reduce blur by this amount per attempt
+    const blurReduction = maxBlur / maxAttempts; // Use dynamic maxAttempts
     const blurAmount = Math.max(0, maxBlur - (attemptIndex * blurReduction));
     return `blur(${blurAmount}px)`;
   };
