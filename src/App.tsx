@@ -3,7 +3,7 @@ import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import GamePage from './pages/GamePage';
 import StatsModal from './components/StatsModal';
-import { DailyCardsProvider } from './contexts/DailyCardsContext.tsx';
+import { DailyCardsProvider } from './contexts/DailyCardsProvider';
 
 function App() {
   return (
