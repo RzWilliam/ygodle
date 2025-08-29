@@ -18,6 +18,7 @@ interface DailyCardsContextType {
   dailyCards: DailyCardsState;
   getDailyCardFromCache: (mode: GameMode) => DailyCardData | null;
   refreshDailyCards: () => Promise<void>;
+  isInitialLoadComplete: boolean;
 }
 
 export const DailyCardsContext = createContext<DailyCardsContextType | undefined>(undefined);

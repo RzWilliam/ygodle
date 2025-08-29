@@ -36,7 +36,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   
   // Hook pour accéder au cache des cartes quotidiennes
-  const { getDailyCardFromCache } = useDailyCards();
+  const { getDailyCardFromCache, isInitialLoadComplete } = useDailyCards();
   
   // Infinite guesses for monsters, limited for spells/traps
   const maxAttempts = mode === 'monsters' ? Infinity : 6;
@@ -52,6 +52,11 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
 
   useEffect(() => {
     const initGame = async () => {
+      // Attendre que le chargement initial soit terminé
+      if (!isInitialLoadComplete) {
+        return;
+      }
+
       setIsLoading(true);
       setAttempts([]);
       setGameOver(false);
@@ -109,7 +114,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     };
     
     initGame();
-  }, [mode, getDailyCardFromCache]);
+  }, [mode, getDailyCardFromCache, isInitialLoadComplete]);
 
   const handleCardGuess = async (guessedCard: YugiohCard) => {
     if (!targetCard || gameOver || !dailyStats) return;
@@ -187,19 +192,21 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !isInitialLoadComplete) {
     return (
       <div className="flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <p className="text-white font-semibold">Loading daily card...</p>
+          <p className="text-white font-semibold">
+            {!isInitialLoadComplete ? 'Loading daily cards...' : 'Loading daily card...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  // Si aucune carte quotidienne n'est disponible
-  if (!targetCard) {
+  // Si aucune carte quotidienne n'est disponible (mais le chargement initial est terminé)
+  if (!targetCard && isInitialLoadComplete) {
     return (
       <div className="flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">

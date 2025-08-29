@@ -16,6 +16,7 @@ export const DailyCardsProvider: React.FC<DailyCardsProviderProps> = ({ children
     isLoading: true,
     error: null
   });
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
   const loadAllDailyCards = async () => {
     try {
@@ -36,6 +37,8 @@ export const DailyCardsProvider: React.FC<DailyCardsProviderProps> = ({ children
         error: null
       });
 
+      setIsInitialLoadComplete(true);
+
       console.log('Daily cards loaded:', {
         monsters: !!monstersResult,
         spells: !!spellsResult,
@@ -48,6 +51,7 @@ export const DailyCardsProvider: React.FC<DailyCardsProviderProps> = ({ children
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to load daily cards'
       }));
+      setIsInitialLoadComplete(true);
     }
   };
 
@@ -66,7 +70,8 @@ export const DailyCardsProvider: React.FC<DailyCardsProviderProps> = ({ children
   const value: DailyCardsContextType = {
     dailyCards,
     getDailyCardFromCache,
-    refreshDailyCards
+    refreshDailyCards,
+    isInitialLoadComplete
   };
 
   return (
