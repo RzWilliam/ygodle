@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { getDailyCard, getCurrentDateString } from "../services/dailyCardService";
+import { getCurrentDateString } from "../services/dailyCardService";
 import { getGameStateForCard } from "../services/guessHistoryService";
+import { useDailyCards } from "../hooks/useDailyCards";
 import type { GameMode } from "../types/game";
 import type { GameMode as GameModeInterface } from "../types/gameMode";
 import Back from "../assets/card_back.png";
@@ -58,6 +59,9 @@ const DynamicRotateCard: React.FC<DynamicRotateCardProps> = ({
     imageUrl: null,
     isLoading: true
   });
+
+  // Hook pour accéder au cache des cartes quotidiennes
+  const { getDailyCardFromCache } = useDailyCards();
 
   // Utilitaires
   const getFrameForMode = (mode: string): string => {
@@ -175,7 +179,8 @@ const DynamicRotateCard: React.FC<DynamicRotateCardProps> = ({
         setCardState(prev => ({ ...prev, isLoading: true }));
         const currentDate = getCurrentDateString();
         
-        const dailyCard = await getDailyCard(gameMode.id as GameMode);
+        // Utiliser le cache au lieu d'appeler getDailyCard
+        const dailyCard = getDailyCardFromCache(gameMode.id as GameMode);
         
         if (dailyCard) {
           const gameState = getGameStateForCard(
@@ -208,7 +213,7 @@ const DynamicRotateCard: React.FC<DynamicRotateCardProps> = ({
     };
 
     loadCardData();
-  }, [gameMode.id]);
+  }, [gameMode.id, getDailyCardFromCache]);
 
   // Rendu principal
   return (

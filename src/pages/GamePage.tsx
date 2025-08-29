@@ -4,7 +4,8 @@ import SearchBar from '../components/SearchBar';
 import GameGrid from '../components/GameGrid';
 import ResultCard from '../components/ResultCard';
 import ShareButton from '../components/ShareButton';
-import { getDailyCard, updateDailyCardStats } from '../services/dailyCardService';
+import { updateDailyCardStats } from '../services/dailyCardService';
+import { useDailyCards } from '../hooks/useDailyCards';
 import { 
   hasPlayedToday as checkHasPlayedToday, 
   markGameStarted, 
@@ -34,6 +35,9 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   
+  // Hook pour accéder au cache des cartes quotidiennes
+  const { getDailyCardFromCache } = useDailyCards();
+  
   // Infinite guesses for monsters, limited for spells/traps
   const maxAttempts = mode === 'monsters' ? Infinity : 6;
 
@@ -58,7 +62,8 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
       cleanupOldGuessHistory();
       
       try {
-        const dailyResult = await getDailyCard(mode);
+        // Utiliser le cache au lieu d'appeler getDailyCard
+        const dailyResult = getDailyCardFromCache(mode);
         if (dailyResult) {
           setTargetCard(dailyResult.card);
           setDailyStats(dailyResult.stats);
@@ -104,7 +109,7 @@ const GamePage: React.FC<GamePageProps> = ({ mode }) => {
     };
     
     initGame();
-  }, [mode]);
+  }, [mode, getDailyCardFromCache]);
 
   const handleCardGuess = async (guessedCard: YugiohCard) => {
     if (!targetCard || gameOver || !dailyStats) return;
