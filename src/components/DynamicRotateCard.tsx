@@ -58,7 +58,8 @@ const DynamicRotateCard: React.FC<DynamicRotateCardProps> = ({
             <img
               src={cardImage}
               alt="Daily Card"
-              className="w-full h-full object-cover blur"
+              className="w-full h-full object-cover"
+              style={{ filter: "blur(4px)" }}
             />
             <div className="absolute inset-0 flex items-center justify-center text-white text-4xl">❓</div>
           </div>
@@ -71,7 +72,8 @@ const DynamicRotateCard: React.FC<DynamicRotateCardProps> = ({
             <img
               src={frame}
               alt="Card Frame"
-              className="w-full h-full object-cover blur-sm"
+              className="w-full h-full object-cover"
+              style={{ filter: "blur(4px)" }}
             />
             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
               <div className="text-white text-4xl opacity-60">❓</div>
