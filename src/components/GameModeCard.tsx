@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { GameMode } from "../types/gameMode";
+import DynamicRotateCard from "./DynamicRotateCard";
 
 interface GameModeCardProps {
   mode: GameMode;
@@ -58,11 +59,11 @@ const GameModeCard: React.FC<GameModeCardProps> = ({ mode, index }) => {
         >
           <div className="flex items-center space-x-4">
             <motion.div 
-              className="text-3xl"
+              className="flex items-center justify-center"
               variants={iconVariants}
               whileHover="hover"
             >
-              {mode.icon}
+              <DynamicRotateCard gameMode={mode} size="sm" />
             </motion.div>
             <div className="flex-1">
               <motion.h2 
