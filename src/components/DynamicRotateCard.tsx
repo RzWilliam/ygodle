@@ -9,188 +9,232 @@ import MonsterFrame from "../assets/monster_frame.png";
 import SpellFrame from "../assets/spell_frame.png";
 import TrapFrame from "../assets/trap_frame.png";
 
+// Types et configurations
+type CardSize = "sm" | "md" | "lg";
+
 interface DynamicRotateCardProps {
   gameMode: GameModeInterface;
-  size?: "sm" | "md" | "lg";
+  size?: CardSize;
 }
+
+interface CardState {
+  isFound: boolean;
+  imageUrl: string | null;
+  isLoading: boolean;
+}
+
+// Configuration des tailles
+const SIZE_CLASSES: Record<CardSize, string> = {
+  sm: "w-16 h-24",
+  md: "w-20 h-28", 
+  lg: "w-24 h-32"
+};
+
+// Configuration des frames par mode
+const FRAME_MAP: Record<string, string> = {
+  monsters: MonsterFrame,
+  spells: SpellFrame,
+  traps: TrapFrame
+};
+
+// Configuration d'animation
+const ANIMATION_CONFIG = {
+  duration: 3,
+  perspective: "1000px",
+  checkmark: {
+    initial: { scale: 0, rotate: 0 },
+    animate: { scale: 1, rotate: 360 },
+    transition: { duration: 0.6, delay: 0.2 }
+  }
+};
 
 const DynamicRotateCard: React.FC<DynamicRotateCardProps> = ({ 
   gameMode, 
   size = "md" 
 }) => {
-  const [cardFound, setCardFound] = useState<boolean>(false);
-  const [cardImage, setCardImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // État du composant
+  const [cardState, setCardState] = useState<CardState>({
+    isFound: false,
+    imageUrl: null,
+    isLoading: true
+  });
 
-  // Tailles selon la prop size
-  const sizeClasses = {
-    sm: "w-16 h-24",
-    md: "w-20 h-28", 
-    lg: "w-24 h-32"
-  };
-
+  // Utilitaires
   const getFrameForMode = (mode: string): string => {
-    switch (mode) {
-      case 'monsters':
-        return MonsterFrame;
-      case 'spells':
-        return SpellFrame;
-      case 'traps':
-        return TrapFrame;
-      default:
-        return MonsterFrame;
-    }
+    return FRAME_MAP[mode] || FRAME_MAP.monsters;
   };
 
-  const renderPlaceholderForMode = (mode: string, cardImage: string | null): React.ReactNode => {
-    if (mode === 'monsters') {
-      // Pour les monstres : fond noir avec point d'interrogation
+  // Composants de rendu
+  const LoadingCard = () => (
+    <div className="absolute w-full h-full rounded bg-gray-700 animate-pulse" />
+  );
+
+  const SuccessCheckmark = () => (
+    <motion.div
+      initial={ANIMATION_CONFIG.checkmark.initial}
+      animate={ANIMATION_CONFIG.checkmark.animate}
+      transition={ANIMATION_CONFIG.checkmark.transition}
+      className="bg-green-500 rounded-full p-1 shadow-lg"
+    >
+      <svg 
+        className="w-8 h-8 text-white" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeWidth={3} 
+          d="M5 13l4 4L19 7" 
+        />
+      </svg>
+    </motion.div>
+  );
+
+  const MonsterPlaceholder = () => (
+    <div className="absolute inset-0 bg-black rounded flex items-center justify-center">
+      <div className="text-white text-4xl opacity-80">❓</div>
+    </div>
+  );
+
+  const SpellTrapPlaceholder = ({ imageUrl }: { imageUrl: string | null }) => {
+    if (imageUrl) {
       return (
-        <div className="absolute inset-0 bg-black rounded flex items-center justify-center">
-          <div className="text-white text-4xl opacity-80">❓</div>
+        <div className="absolute inset-0 rounded overflow-hidden">
+          <img
+            src={imageUrl}
+            alt="Daily Card"
+            className="w-full h-full object-cover"
+            style={{ filter: "blur(4px)" }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-white text-4xl">❓</div>
         </div>
       );
-    } else {
-      // Pour les sorts/pièges : vraie carte floutée
-      if (cardImage) {
-        return (
-          <div className="absolute inset-0 rounded overflow-hidden">
-            <img
-              src={cardImage}
-              alt="Daily Card"
-              className="w-full h-full object-cover"
-              style={{ filter: "blur(4px)" }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center text-white text-4xl">❓</div>
-          </div>
-        );
-      } else {
-        // Fallback si pas d'image disponible
-        const frame = getFrameForMode(mode);
-        return (
-          <div className="absolute inset-0 rounded overflow-hidden">
-            <img
-              src={frame}
-              alt="Card Frame"
-              className="w-full h-full object-cover"
-              style={{ filter: "blur(4px)" }}
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-              <div className="text-white text-4xl opacity-60">❓</div>
-            </div>
-          </div>
-        );
-      }
     }
+
+    const frame = getFrameForMode(gameMode.id);
+    return (
+      <div className="absolute inset-0 rounded overflow-hidden">
+        <img
+          src={frame}
+          alt="Card Frame"
+          className="w-full h-full object-cover"
+          style={{ filter: "blur(4px)" }}
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="text-white text-4xl opacity-60">❓</div>
+        </div>
+      </div>
+    );
   };
 
+  const FoundCard = ({ imageUrl }: { imageUrl: string }) => (
+    <div className="absolute w-full h-full rounded overflow-hidden">
+      <img
+        src={imageUrl}
+        alt="Daily Card"
+        className="w-full h-full object-cover brightness-75"
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <SuccessCheckmark />
+      </div>
+    </div>
+  );
+
+  const NotFoundCard = () => {
+    const isMonster = gameMode.id === 'monsters';
+    
+    return (
+      <div className="absolute w-full h-full rounded overflow-hidden">
+        {isMonster ? (
+          <MonsterPlaceholder />
+        ) : (
+          <SpellTrapPlaceholder imageUrl={cardState.imageUrl} />
+        )}
+      </div>
+    );
+  };
+
+  const CardFront = () => {
+    if (cardState.isLoading) {
+      return <LoadingCard />;
+    }
+
+    if (cardState.isFound && cardState.imageUrl) {
+      return <FoundCard imageUrl={cardState.imageUrl} />;
+    }
+
+    return <NotFoundCard />;
+  };
+
+  // Effet pour charger les données de la carte
   useEffect(() => {
-    const checkCardStatus = async () => {
+    const loadCardData = async () => {
       try {
-        setLoading(true);
+        setCardState(prev => ({ ...prev, isLoading: true }));
         const currentDate = getCurrentDateString();
         
-        // Récupérer la carte du jour
         const dailyCard = await getDailyCard(gameMode.id as GameMode);
         
         if (dailyCard) {
-          // Vérifier si l'utilisateur a gagné
-          const gameState = getGameStateForCard(gameMode.id as GameMode, dailyCard.card.id, currentDate);
+          const gameState = getGameStateForCard(
+            gameMode.id as GameMode, 
+            dailyCard.card.id, 
+            currentDate
+          );
           const hasWon = gameState?.gameWon || false;
           
-          setCardFound(hasWon);
-          setCardImage(dailyCard.card.card_images?.[0]?.image_url || null);
+          setCardState({
+            isFound: hasWon,
+            imageUrl: dailyCard.card.card_images?.[0]?.image_url || null,
+            isLoading: false
+          });
         } else {
-          setCardFound(false);
-          setCardImage(null);
+          setCardState({
+            isFound: false,
+            imageUrl: null,
+            isLoading: false
+          });
         }
       } catch (error) {
-        console.error('Error checking card status:', error);
-        setCardFound(false);
-        setCardImage(null);
-      } finally {
-        setLoading(false);
+        console.error('Error loading card data:', error);
+        setCardState({
+          isFound: false,
+          imageUrl: null,
+          isLoading: false
+        });
       }
     };
 
-    checkCardStatus();
+    loadCardData();
   }, [gameMode.id]);
 
-  const renderCardFront = () => {
-    if (loading) {
-      return (
-        <div className="absolute w-full h-full rounded bg-gray-700 animate-pulse" />
-      );
-    }
-
-    if (cardFound && cardImage) {
-      // Carte trouvée - afficher la carte avec un check vert et fond assombri
-      return (
-        <div className="absolute w-full h-full rounded overflow-hidden">
-          {/* Image de la carte avec overlay sombre */}
-          <img
-            src={cardImage}
-            alt="Daily Card"
-            className="w-full h-full object-cover brightness-75"
-          />
-          
-          {/* Check vert au centre */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <motion.div
-              initial={{ scale: 0, rotate: 0 }}
-              animate={{ scale: 1, rotate: 360 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-green-500 rounded-full p-1 shadow-lg"
-            >
-              <svg 
-                className="w-8 h-8 text-white" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={3} 
-                  d="M5 13l4 4L19 7" 
-                />
-              </svg>
-            </motion.div>
-          </div>
-        </div>
-      );
-    } else {
-      // Carte non trouvée - afficher selon le mode
-      return (
-        <div className="absolute w-full h-full rounded overflow-hidden">
-          {renderPlaceholderForMode(gameMode.id, cardImage)}
-        </div>
-      );
-    }
-  };
-
+  // Rendu principal
   return (
     <div
       className="relative flex items-center justify-center"
-      style={{ perspective: "1000px" }}
+      style={{ perspective: ANIMATION_CONFIG.perspective }}
     >
       <motion.div
-        className={`relative ${sizeClasses[size]}`}
+        className={`relative ${SIZE_CLASSES[size]}`}
         animate={{ rotateY: 360 }}
-        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-        style={{
-          transformStyle: "preserve-3d",
+        transition={{ 
+          duration: ANIMATION_CONFIG.duration, 
+          repeat: Infinity, 
+          ease: "linear" 
         }}
+        style={{ transformStyle: "preserve-3d" }}
       >
-        {/* Front de la carte (dynamique) */}
+        {/* Face avant de la carte */}
         <motion.div
           className="absolute w-full h-full rounded shadow-lg"
           style={{ backfaceVisibility: "hidden" }}
         >
-          {renderCardFront()}
+          <CardFront />
         </motion.div>
 
-        {/* Back de la carte */}
+        {/* Face arrière de la carte */}
         <motion.img
           src={Back}
           alt="Card Back"
